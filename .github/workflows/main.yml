@@ -1,4 +1,4 @@
-name: Gerar APK 
+name: Gerar APK Princesa Diamante
 on: [push]
 jobs:
   build:
@@ -10,14 +10,14 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-      - name: Localizar Kit e Construir
+      - name: Construir Direto na Pasta
         run: |
-          # Busca o gradlew em qualquer pasta (resolve o 'kit fora')
-          export GRAD_PATH=$(find . -name "gradlew" | head -n 1)
-          chmod +x $GRAD_PATH
-          $GRAD_PATH assembleDebug
-      - name: Upload APK Final
+          # Entra na pasta que o senhor criou e tenta fabricar
+          cd Android
+          chmod +x gradlew || echo "Kit ainda não encontrado"
+          ./gradlew assembleDebug
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: APK_Dony
+          name: APK_Dony_Final
           path: "**/*.apk"
