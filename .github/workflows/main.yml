@@ -1,23 +1,12 @@
-name: Gerar APK Princesa Diamante
+name: Build Jdp_system-26
 on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Setup JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-      - name: Construir Direto na Pasta
-        run: |
-          # Entra na pasta que o senhor criou e tenta fabricar
-          cd Android
-          chmod +x gradlew || echo "Kit ainda não encontrado"
-          ./gradlew assembleDebug
-      - name: Upload APK
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: APK_Dony_Final
-          path: "**/*.apk"
+          name: JDp_system-26
+          path: .
