@@ -1,0 +1,23 @@
+name: Gerar APK 
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      - name: Localizar Kit e Construir
+        run: |
+          # Busca o gradlew em qualquer pasta (resolve o 'kit fora')
+          export GRAD_PATH=$(find . -name "gradlew" | head -n 1)
+          chmod +x $GRAD_PATH
+          $GRAD_PATH assembleDebug
+      - name: Upload APK Final
+        uses: actions/upload-artifact@v4
+        with:
+          name: APK_Dony
+          path: "**/*.apk"
