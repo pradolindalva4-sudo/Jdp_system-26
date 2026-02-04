@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>PDV MESTRE - JDP INDUSTRIAL</title>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <style>
+        :root { --gold: #f59e0b; --bg: #050505; --card: #111; }
+        body { background: var(--bg); color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; }
+        .grid-master { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        .painel { background: var(--card); border: 1px solid #222; padding: 20px; border-radius: 8px; }
+        h2 { color: var(--gold); border-bottom: 2px solid var(--gold); padding-bottom: 10px; text-transform: uppercase; }
+        
+        /* ESTOQUE */
+        .item-estoque { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #222; }
+        .btn-stock { background: #222; color: var(--gold); border: 1px solid var(--gold); padding: 5px 10px; cursor: pointer; font-weight: 900; }
+        .qtd-box { font-size: 20px; font-weight: 900; min-width: 40px; text-align: center; }
+
+        /* PEDIDOS */
+        .pedido-card { background: #000; border-left: 5px solid var(--gold); padding: 15px; margin-bottom: 15px; animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+        .btn-done { background: var(--gold); color: #000; border: none; padding: 10px; width: 100%; font-weight: 900; cursor: pointer; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="grid-master">
+        <!-- GESTÃO DE ESTOQUE -->
+        <div class="painel">
+            <h2><i class="fas fa-boxes"></i> CONTROLE DE ESTOQUE INDUSTRIAL</h2>
+            <div id="lista-estoque"></div>
+            
+            <h2 style="margin-top:40px;">ADICIONAR NOVO PRODUTO</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                <input type="text" id="new-nome" placeholder="Nome">
+                <input type="number" id="new-preco" placeholder="Preço">
+                <input type="number" id="new-qtd" placeholder="Estoque Inicial">
+                <input type="text" id="new-link" placeholder="Link da Foto" style="grid-column: span 3;">
+                <button onclick="adicionarProduto()" style="grid-column: span 3; padding: 15px; background: var(--gold); font-weight: 900;">CADASTRAR NO KERNEL</button>
+            </div>
+        </div>
+
+        <!-- MONITOR DE PEDIDOS -->
+        <div class="painel">
+            <h2><i class="fas fa-bell"></i> PEDIDOS EM TEMPO REAL</h2>
+            <div id="monitor-pedidos"></div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCEdXF7ScnMYz0Ce0OW-B_UJ8Bm5Pl9m8o",
+            authDomain: "dony-burguers.firebaseapp.com",
+            databaseURL: "https://dony-burguers-default-rtdb.firebaseio.com",
+            projectId: "dony-burguers",
+            storageBucket: "dony-burguers.firebasestorage.app",
+            messagingSenderId: "511509845142",
+            appId: "1:511509845142:web:9b0254a09ad8051e039eb7"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Sincronizar Estoque
+        db.ref('cardapio_supreme').on('value', snap => {
+            const data = snap.val();
+            const container = document.getElementById('lista-estoque');
+            container.innerHTML = '';
+            if(data) {
+                Object.entries(data).forEach(([id, p]) => {
+                    container.innerHTML += `
+                        <div class="item-estoque">
+                            <span>${p.nome} (R$ ${p.preco})</span>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <button class="btn-stock" onclick="updateStock('${id}', -1)">-</button>
+                                <div class="qtd-box">${p.estoque || 0}</div>
+                                <button class="btn-stock" onclick="updateStock('${id}', 1)">+</button>
+                                <button onclick="removerProduto('${id}')" style="background:red; color:white; border:none; padding:5px; margin-left:10px;">X</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+        });
+
+        // Monitorar Pedidos
+        db.ref('pedidos_ativos').on('value', snap => {
+            const pedidos = snap.val();
+            const monitor = document.getElementById('monitor-pedidos');
+            monitor.innerHTML = '';
+            if(pedidos) {
+                Object.entries(pedidos).reverse().forEach(([id, p]) => {
+                    let itensHtml = p.itens.map(i => `<div>${i.qtd}x ${i.nome}</div>`).join('');
+                    monitor.innerHTML += `
+                        <div class="pedido-card">
+                            <div style="font-size:12px; color:var(--gold)">ID: ${id}</div>
+                            <div style="margin:10px 0; font-weight:bold;">${itensHtml}</div>
+                            <div style="font-size:18px; font-weight:900;">TOTAL: R$ ${p.total}</div>
+                            <button class="btn-done" onclick="finalizarPedido('${id}')">CONCLUIR E LIMPAR</button>
+                        </div>
+                    `;
+                });
+            }
+        });
+
+        function updateStock(id, mod) {
+            const ref = db.ref('cardapio_supreme/' + id + '/estoque');
+            ref.transaction(current => (current || 0) + mod);
+        }
+
+        function adicionarProduto() {
+            const nome = document.getElementById('new-nome').value.toUpperCase();
+            const preco = parseFloat(document.getElementById('new-preco').value);
+            const estoque = parseInt(document.getElementById('new-qtd').value);
+            const link = document.getElementById('new-link').value;
+            if(nome && preco) {
+                db.ref('cardapio_supreme').push({ nome, preco, estoque, link });
+            }
+        }
+
+        function removerProduto(id) { if(confirm("Remover do sistema?")) db.ref('cardapio_supreme').child(id).remove(); }
+        function finalizarPedido(id) { db.ref('pedidos_ativos').child(id).remove(); }
+    </script>
+</body>
+</html>

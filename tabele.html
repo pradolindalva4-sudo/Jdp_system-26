@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DONY BURGUERS - SUPREME INDUSTRIAL</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --jdp-gold: #f59e0b;
+            --jdp-gold-gradient: linear-gradient(90deg, #bf953f 0%, #fcf6ba 25%, #b38728 50%, #fcf6ba 75%, #bf953f 100%);
+            --jdp-bg: #000000;
+        }
+
+        body { 
+            background: var(--jdp-bg); 
+            color: #fff; 
+            font-family: 'Inter', sans-serif; 
+            margin: 0; 
+            padding: 100px 5% 120px 5%;
+            /* CORREÇÃO DE TRAVAMENTO: Scroll liberado para o toque funcionar */
+            overflow-x: hidden;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* INTERFACE PRINCIPAL */
+        .header-pc {
+            position: fixed; top: 0; left: 0; right: 0; height: 80px;
+            background: rgba(0, 0, 0, 0.95); border-bottom: 2px solid var(--jdp-gold); z-index: 1000;
+            display: flex; justify-content: space-between; align-items: center; padding: 0 5%;
+        }
+        
+        .grid-industrial { 
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); 
+            gap: 20px; max-width: 1300px; margin: 0 auto;
+        }
+
+        .card-industrial {
+            background: #0a0a0a; border: 1px solid #1a1a1a;
+            border-radius: 8px; overflow: hidden; cursor: pointer; transition: 0.3s;
+            position: relative;
+        }
+        .card-industrial:active { transform: scale(0.98); }
+        .card-industrial img { width: 100%; height: 180px; object-fit: cover; opacity: 0.7; }
+        .card-body { padding: 15px; text-align: center; }
+        .price { color: var(--jdp-gold); font-weight: 900; font-size: 22px; }
+
+        /* TELA DE PROCESSAMENTO */
+        #tela-processando {
+            display: none; position: fixed; inset: 0; background: #000;
+            z-index: 9000; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .bar-loader { width: 200px; height: 2px; background: #111; position: relative; overflow: hidden; margin-top: 20px; }
+        .bar-inner { position: absolute; width: 50%; height: 100%; background: var(--jdp-gold); animation: load 1.5s infinite; }
+
+        /* TELA XEQUE-MATE */
+        #tela-xeque-mate {
+            display: none; position: fixed; inset: 0; background: #000;
+            z-index: 9999; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center;
+        }
+
+        .giant-name {
+            font-size: 8vw; font-weight: 900; text-transform: uppercase;
+            letter-spacing: -2px; background: var(--jdp-gold-gradient);
+            background-size: 200% auto; -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shimmer 2s linear infinite, vibrate 0.1s linear infinite;
+            line-height: 0.9; font-stretch: ultra-expanded;
+        }
+
+        .sinta-se {
+            font-size: 24px; color: var(--jdp-gold); letter-spacing: 15px;
+            margin-top: 20px; font-weight: 200; text-transform: uppercase;
+            opacity: 0; transform: translateY(20px); animation: fadeInUp 1s forwards 0.5s;
+        }
+
+        @keyframes load { 0% { left: -100%; } 100% { left: 100%; } }
+        @keyframes shimmer { 0% { background-position: 200% center; } 100% { background-position: -200% center; } }
+        @keyframes vibrate { 0% { transform: translate(0); } 25% { transform: translate(1px, -1px); } 50% { transform: translate(-1px, 1px); } 75% { transform: translate(1px, 1px); } 100% { transform: translate(0); } }
+        @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+
+        .btn-finalizar {
+            position: fixed; bottom: 30px; right: 30px;
+            background: var(--jdp-gold-gradient); color: #000;
+            padding: 20px 50px; border-radius: 4px; font-weight: 900;
+            border: none; cursor: pointer; font-size: 16px; letter-spacing: 2px;
+            z-index: 1100;
+        }
+
+        @media (max-width: 768px) {
+            .giant-name { font-size: 15vw; }
+            .sinta-se { font-size: 12px; letter-spacing: 5px; }
+            .btn-finalizar { right: 5%; left: 5%; width: 90%; padding: 20px 0; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-pc">
+        <div style="font-weight: 900; color: var(--jdp-gold);">DONY BURGUERS</div>
+        <div id="pc-total" style="font-size: 24px; font-weight: 900;">R$ 0,00</div>
+    </div>
+
+    <div class="grid-industrial" id="vitrine"></div>
+
+    <button class="btn-finalizar" onclick="protocoloSupreme()">
+        CONFIRMAR PEDIDO
+    </button>
+
+    <!-- PROCESSAMENTO -->
+    <div id="tela-processando">
+        <div style="letter-spacing: 5px; font-size: 10px; color: var(--jdp-gold);">ESTABELECENDO CONEXÃO COM A PRODUÇÃO</div>
+        <div class="bar-loader"><div class="bar-inner"></div></div>
+    </div>
+
+    <!-- XEQUE-MATE FINAL -->
+    <div id="tela-xeque-mate">
+        <h1 class="giant-name">DONY BURGUERS</h1>
+        <p class="sinta-se">Sinta-se à vontade</p>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCEdXF7ScnMYz0Ce0OW-B_UJ8Bm5Pl9m8o",
+            authDomain: "dony-burguers.firebaseapp.com",
+            databaseURL: "https://dony-burguers-default-rtdb.firebaseio.com",
+            projectId: "dony-burguers",
+            storageBucket: "dony-burguers.firebasestorage.app",
+            messagingSenderId: "511509845142",
+            appId: "1:511509845142:web:9b0254a09ad8051e039eb7"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let carrinho = [];
+        let produtosGlobais = [];
+
+        window.onload = () => {
+            db.ref('cardapio_supreme').on('value', snap => {
+                const data = snap.val();
+                produtosGlobais = data ? Object.entries(data).map(([id, val]) => ({id, ...val})) : [];
+                renderizar();
+            });
+        };
+
+        function renderizar() {
+            const vitrine = document.getElementById('vitrine');
+            let total = 0;
+            carrinho.forEach(c => { total += (c.preco * c.qtd); });
+            document.getElementById('pc-total').innerText = `R$ ${total.toFixed(2)}`;
+
+            vitrine.innerHTML = produtosGlobais.map((p, i) => {
+                const item = carrinho.find(c => c.id === p.id);
+                const qtd = item ? item.qtd : 0;
+                const esgotado = (p.estoque || 0) <= 0;
+                
+                return `
+                    <div class="card-industrial ${esgotado ? 'opacity:0.4; pointer-events:none;' : ''}" onclick="addCarrinho('${p.id}')">
+                        <img src="${p.link}">
+                        <div class="card-body">
+                            <div style="font-size: 12px; color: var(--jdp-gold);">${qtd} NO CARRINHO</div>
+                            <h3 style="margin: 5px 0; text-transform: uppercase;">${p.nome}</h3>
+                            <div class="price">R$ ${parseFloat(p.preco).toFixed(2)}</div>
+                            <div style="font-size: 10px; color: #444; margin-top:5px;">ESTOQUE: ${p.estoque || 0}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function addCarrinho(id) {
+            const p = produtosGlobais.find(x => x.id === id);
+            const item = carrinho.find(c => c.id === id);
+            
+            if (item) {
+                if(item.qtd < p.estoque) item.qtd++;
+                else alert("LIMITE DE ESTOQUE");
+            } else {
+                carrinho.push({ ...p, qtd: 1 });
+            }
+            renderizar();
+        }
+
+        function protocoloSupreme() {
+            if (carrinho.length === 0) return;
+
+            // 1. Inicia Processamento Stealth
+            document.getElementById('tela-processando').style.display = 'flex';
+
+            // 2. Envia para o Canal de Produção (Firebase)
+            const totalTxt = document.getElementById('pc-total').innerText;
+            const pedidoRef = db.ref('pedidos_ativos').push();
+            
+            pedidoRef.set({
+                itens: carrinho,
+                total: totalTxt,
+                timestamp: Date.now(),
+                status: "pendente"
+            }).then(() => {
+                // 3. Baixa de Estoque Automática
+                carrinho.forEach(item => {
+                    db.ref('cardapio_supreme/' + item.id + '/estoque').transaction(atual => (atual || 0) - item.qtd);
+                });
+
+                // 4. Ativa o Xeque-Mate Visual
+                setTimeout(() => {
+                    document.getElementById('tela-processando').style.display = 'none';
+                    document.getElementById('tela-xeque-mate').style.display = 'flex';
+
+                    // 5. Reset após 6 segundos
+                    setTimeout(() => {
+                        location.reload();
+                    }, 6000);
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
